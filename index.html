@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Seguridad</title>
+    <style>
+        body { font-family: 'Arial', sans-serif; background: #eef2f3; text-align: center; margin: 0; }
+        
+        /* BLOQUEO */
+        #lock-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #2c3e50; z-index: 999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; color: white;
+        }
+        .pin-input { font-size: 30px; letter-spacing: 10px; margin: 20px; font-weight: bold; }
+        .keypad button { width: 60px; height: 60px; font-size: 20px; margin: 5px; border-radius: 50%; border: none; cursor: pointer; }
+        
+        /* PANEL PRINCIPAL */
+        #main-panel { display: none; padding: 20px; max-width: 600px; margin: auto; }
+        
+        /* TARJETAS */
+        .card { background: white; padding: 15px; margin: 10px 0; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .row { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; }
+        
+        /* BOTONES */
+        .btn { padding: 10px 15px; border: none; border-radius: 5px; color: white; font-weight: bold; cursor: pointer; }
+        .btn-on { background: #2ecc71; }
+        .btn-off { background: #e74c3c; }
+        .btn-door { background: #f1c40f; color: black; width: 100%; padding: 15px; }
+
+        /* ESTADOS DE SENSORES */
+        .status-box { padding: 10px; border-radius: 5px; color: white; font-weight: bold; margin-top: 5px; }
+        .status-safe { background: #95a5a6; } /* Gris = Todo bien */
+        .status-danger { background: #c0392b; animation: parpadeo 1s infinite; } /* Rojo = Alerta */
+        .status-active { background: #f39c12; } /* Amarillo = Luz Encendida */
+
+        @keyframes parpadeo { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <div id="lock-screen">
+        <h2>🔒 SISTEMA BLOQUEADO</h2>
+        <div class="pin-input" id="pinDisplay">_ _ _ _</div>
+        <div class="keypad">
+            <div>
+                <button onclick="addPin(1)">1</button><button onclick="addPin(2)">2</button><button onclick="addPin(3)">3</button>
+            </div>
+            <div>
+                <button onclick="addPin(4)">4</button><button onclick="addPin(5)">5</button><button onclick="addPin(6)">6</button>
+            </div>
+            <div>
+                <button onclick="addPin(7)">7</button><button onclick="addPin(8)">8</button><button onclick="addPin(9)">9</button>
+            </div>
+            <div>
+                <button style="background:#e74c3c; color:white" onclick="clearPin()">C</button>
+                <button onclick="addPin(0)">0</button>
+                <button style="background:#2ecc71; color:white" onclick="checkPin()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-panel">
+        <h1>🏡 Control Residencial</h1>
+
+        <div class="card">
+            <h3>🛡️ Estado de Sensores</h3>
+            <p>Ultrasonido (Patio): <div id="alertUltra" class="status-box status-safe">Sin Movimiento</div></p>
+            <p>Infrarrojo (Ventana): <div id="alertIR" class="status-box status-safe">Cerrada</div></p>
+            <p>Luz Jardín (Exterior): <div id="statusLuzExt" class="status-box status-safe">APAGADA</div></p>
+            <hr>
+            <p>🌡️ Temp: <b id="valTemp">--</b> °C | 💧 Hum: <b id="valHum">--</b> %</p>
+        </div>
+
+        <div class="card">
+            <h3>🚪 Puerta Principal</h3>
+            <button class="btn btn-door" onclick="togglePuerta()">ABRIR / CERRAR</button>
+            <p id="estadoPuertaTexto">Estado: Desconocido</p>
+        </div>
+
+        <div class="card">
+            <h3>💡 Habitaciones</h3>
+            <div class="row"><span>Cuarto 1</span> <div><button class="btn btn-on" onclick="setLuz('cuarto1', 1)">ON</button> <button class="btn btn-off" onclick="setLuz('cuarto1', 0)">OFF</button></div></div>
+            <div class="row"><span>Cuarto 2</span> <div><button class="btn btn-on" onclick="setLuz('cuarto2', 1)">ON</button> <button class="btn btn-off" onclick="setLuz('cuarto2', 0)">OFF</button></div></div>
+            <div class="row"><span>Cuarto 3</span> <div><button class="btn btn-on" onclick="setLuz('cuarto3', 1)">ON</button> <button class="btn btn-off" onclick="setLuz('cuarto3', 0)">OFF</button></div></div>
+            <div class="row"><span>Cuarto 4</span> <div><button class="btn btn-on" onclick="setLuz('cuarto4', 1)">ON</button> <button class="btn btn-off" onclick="setLuz('cuarto4', 0)">OFF</button></div></div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <script>
+        // --- PEGA TUS DATOS DE FIREBASE AQUÍ ---
+        const firebaseConfig = {
+            apiKey: "TU_API_KEY_AQUI", // No es critica para lectura publica
+            authDomain: "esp23-8c60b.firebaseapp.com",
+            databaseURL: "https://esp23-8c60b-default-rtdb.firebaseio.com",
+            projectId: "esp23-8c60b",
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // --- LOGICA PIN ---
+        let pin = "";
+        function addPin(n) { if(pin.length < 4) { pin += n; updatePinDisplay(); } }
+        function clearPin() { pin = ""; updatePinDisplay(); }
+        function updatePinDisplay() { document.getElementById('pinDisplay').innerText = "* ".repeat(pin.length) || "_ _ _ _"; }
+        function checkPin() {
+            if(pin === "1234") {
+                document.getElementById('lock-screen').style.display = "none";
+                document.getElementById('main-panel').style.display = "block";
+            } else { alert("Pin Incorrecto"); clearPin(); }
+        }
+
+        // --- ESCRITURA ---
+        function setLuz(cuarto, val) { db.ref('casa/control/' + cuarto).set(val); }
+        
+        let estadoPuertaActual = 0;
+        function togglePuerta() {
+            const nuevoEstado = estadoPuertaActual === 0 ? 1 : 0;
+            db.ref('casa/control/puerta').set(nuevoEstado);
+        }
+
+        // --- LECTURA EN TIEMPO REAL ---
+        // Escuchamos 'casa' completo para actualizar todo
+        db.ref('casa').on('value', (snap) => {
+            const data = snap.val();
+            if(!data) return;
+
+            // 1. Actualizar Sensores
+            const sens = data.sensores;
+            document.getElementById('valTemp').innerText = sens.temperatura;
+            document.getElementById('valHum').innerText = sens.humedad;
+
+            // Alerta Ultrasonico
+            const divUltra = document.getElementById('alertUltra');
+            if(sens.alerta_ultrasonico == 1) {
+                divUltra.innerText = "¡INTRUSO DETECTADO!";
+                divUltra.className = "status-box status-danger";
+            } else {
+                divUltra.innerText = "Sin movimiento";
+                divUltra.className = "status-box status-safe";
+            }
+
+            // Alerta Infrarrojo
+            const divIR = document.getElementById('alertIR');
+            if(sens.alerta_ir == 1) {
+                divIR.innerText = "¡VENTANA ABIERTA!";
+                divIR.className = "status-box status-danger";
+            } else {
+                divIR.innerText = "Segura";
+                divIR.className = "status-box status-safe";
+            }
+
+            // Luz Exterior
+            const divLuz = document.getElementById('statusLuzExt');
+            if(sens.luz_exterior == "ON") {
+                divLuz.innerText = "ENCENDIDA (Noche)";
+                divLuz.className = "status-box status-active";
+            } else {
+                divLuz.innerText = "APAGADA (Día)";
+                divLuz.className = "status-box status-safe";
+            }
+
+            // 2. Estado Puerta
+            estadoPuertaActual = data.control.puerta;
+            document.getElementById('estadoPuertaTexto').innerText = estadoPuertaActual ? "Estado: ABIERTA 🔓" : "Estado: CERRADA 🔒";
+        });
+    </script>
+</body>
+</html>
