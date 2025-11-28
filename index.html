@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Seguridad</title>
+    <title>Panel de Seguridad y Voz</title>
     <style>
         body { font-family: 'Arial', sans-serif; background: #eef2f3; text-align: center; margin: 0; }
         
@@ -20,7 +20,7 @@
         #main-panel { display: none; padding: 20px; max-width: 600px; margin: auto; }
         
         /* TARJETAS */
-        .card { background: white; padding: 15px; margin: 10px 0; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .card { background: white; padding: 15px; margin: 15px 0; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .row { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; }
         
         /* BOTONES */
@@ -29,11 +29,21 @@
         .btn-off { background: #e74c3c; }
         .btn-door { background: #f1c40f; color: black; width: 100%; padding: 15px; }
 
+        /* BOTÓN DE VOZ NUEVO */
+        .mic-container { margin-bottom: 20px; }
+        .btn-mic { 
+            width: 80px; height: 80px; border-radius: 50%; font-size: 35px; 
+            background: #3498db; color: white; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            cursor: pointer; transition: transform 0.2s;
+        }
+        .btn-mic:active { transform: scale(0.90); background: #2980b9; }
+        .mic-status { font-style: italic; color: #555; margin-top: 10px; min-height: 20px; }
+
         /* ESTADOS DE SENSORES */
         .status-box { padding: 10px; border-radius: 5px; color: white; font-weight: bold; margin-top: 5px; }
-        .status-safe { background: #95a5a6; } /* Gris = Todo bien */
-        .status-danger { background: #c0392b; animation: parpadeo 1s infinite; } /* Rojo = Alerta */
-        .status-active { background: #f39c12; } /* Amarillo = Luz Encendida */
+        .status-safe { background: #95a5a6; } 
+        .status-danger { background: #c0392b; animation: parpadeo 1s infinite; }
+        .status-active { background: #f39c12; } 
 
         @keyframes parpadeo { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
@@ -44,15 +54,9 @@
         <h2>🔒 SISTEMA BLOQUEADO</h2>
         <div class="pin-input" id="pinDisplay">_ _ _ _</div>
         <div class="keypad">
-            <div>
-                <button onclick="addPin(1)">1</button><button onclick="addPin(2)">2</button><button onclick="addPin(3)">3</button>
-            </div>
-            <div>
-                <button onclick="addPin(4)">4</button><button onclick="addPin(5)">5</button><button onclick="addPin(6)">6</button>
-            </div>
-            <div>
-                <button onclick="addPin(7)">7</button><button onclick="addPin(8)">8</button><button onclick="addPin(9)">9</button>
-            </div>
+            <div><button onclick="addPin(1)">1</button><button onclick="addPin(2)">2</button><button onclick="addPin(3)">3</button></div>
+            <div><button onclick="addPin(4)">4</button><button onclick="addPin(5)">5</button><button onclick="addPin(6)">6</button></div>
+            <div><button onclick="addPin(7)">7</button><button onclick="addPin(8)">8</button><button onclick="addPin(9)">9</button></div>
             <div>
                 <button style="background:#e74c3c; color:white" onclick="clearPin()">C</button>
                 <button onclick="addPin(0)">0</button>
@@ -63,6 +67,11 @@
 
     <div id="main-panel">
         <h1>🏡 Control Residencial</h1>
+
+        <div class="mic-container">
+            <button class="btn-mic" onclick="activarVoz()">🎤</button>
+            <div id="textoVoz" class="mic-status">Presiona para hablar...</div>
+        </div>
 
         <div class="card">
             <h3>🛡️ Estado de Sensores</h3>
@@ -94,7 +103,7 @@
     <script>
         // --- PEGA TUS DATOS DE FIREBASE AQUÍ ---
         const firebaseConfig = {
-            apiKey: "TU_API_KEY_AQUI", // No es critica para lectura publica
+            apiKey: "TU_API_KEY_AQUI", 
             authDomain: "esp23-8c60b.firebaseapp.com",
             databaseURL: "https://esp23-8c60b-default-rtdb.firebaseio.com",
             projectId: "esp23-8c60b",
@@ -114,7 +123,7 @@
             } else { alert("Pin Incorrecto"); clearPin(); }
         }
 
-        // --- ESCRITURA ---
+        // --- LOGICA DE CONTROL ---
         function setLuz(cuarto, val) { db.ref('casa/control/' + cuarto).set(val); }
         
         let estadoPuertaActual = 0;
@@ -123,13 +132,74 @@
             db.ref('casa/control/puerta').set(nuevoEstado);
         }
 
+        function setPuerta(val) { db.ref('casa/control/puerta').set(val); } // Para usar con voz
+
+        // --- NUEVA LÓGICA DE VOZ ---
+        function activarVoz() {
+            const output = document.getElementById('textoVoz');
+            
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert("Navegador no compatible con voz (Usa Chrome/Edge/Safari).");
+                return;
+            }
+
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'es-ES'; // Español
+            recognition.start();
+            output.innerText = "Escuchando... 👂";
+            output.style.color = "#d35400";
+
+            recognition.onresult = function(event) {
+                const comando = event.results[0][0].transcript.toLowerCase();
+                output.innerText = 'Dijiste: "' + comando + '"';
+                output.style.color = "#333";
+                procesarComandoVoz(comando);
+            };
+
+            recognition.onerror = function(event) {
+                output.innerText = "Error o silencio...";
+            };
+        }
+
+        function procesarComandoVoz(texto) {
+            // Palabras clave para encender/apagar
+            const accionOn = texto.includes("encender") || texto.includes("prender") || texto.includes("activa");
+            const accionOff = texto.includes("apagar") || texto.includes("desactivar");
+
+            // Cuarto 1
+            if (texto.includes("uno") || texto.includes("1")) {
+                if (accionOn) setLuz('cuarto1', 1);
+                if (accionOff) setLuz('cuarto1', 0);
+            }
+            // Cuarto 2
+            else if (texto.includes("dos") || texto.includes("2")) {
+                if (accionOn) setLuz('cuarto2', 1);
+                if (accionOff) setLuz('cuarto2', 0);
+            }
+            // Cuarto 3
+            else if (texto.includes("tres") || texto.includes("3")) {
+                if (accionOn) setLuz('cuarto3', 1);
+                if (accionOff) setLuz('cuarto3', 0);
+            }
+            // Cuarto 4
+            else if (texto.includes("cuatro") || texto.includes("4")) {
+                if (accionOn) setLuz('cuarto4', 1);
+                if (accionOff) setLuz('cuarto4', 0);
+            }
+            // Puerta
+            else if (texto.includes("puerta")) {
+                if (texto.includes("abrir")) setPuerta(1);
+                if (texto.includes("cerrar")) setPuerta(0);
+            }
+        }
+
         // --- LECTURA EN TIEMPO REAL ---
-        // Escuchamos 'casa' completo para actualizar todo
         db.ref('casa').on('value', (snap) => {
             const data = snap.val();
             if(!data) return;
 
-            // 1. Actualizar Sensores
+            // Sensores
             const sens = data.sensores;
             document.getElementById('valTemp').innerText = sens.temperatura;
             document.getElementById('valHum').innerText = sens.humedad;
@@ -164,7 +234,7 @@
                 divLuz.className = "status-box status-safe";
             }
 
-            // 2. Estado Puerta
+            // Puerta
             estadoPuertaActual = data.control.puerta;
             document.getElementById('estadoPuertaTexto').innerText = estadoPuertaActual ? "Estado: ABIERTA 🔓" : "Estado: CERRADA 🔒";
         });
