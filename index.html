@@ -3,180 +3,169 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Home Pro</title>
+    <title>Smart Home Ultimate</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #eef2f3; text-align: center; margin: 0; }
+        body { font-family: 'Segoe UI', Roboto, sans-serif; background: #eceff1; text-align: center; margin: 0; padding-bottom: 50px; }
         
-        /* --- ESTILOS GENERALES --- */
-        h1 { color: #2c3e50; margin-top: 20px; font-size: 24px; }
-        .btn { padding: 10px 15px; border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .btn:active { transform: scale(0.95); }
-        .btn-on { background: #27ae60; }
-        .btn-off { background: #c0392b; }
-        
-        /* --- BLOQUEO DE SEGURIDAD --- */
+        /* HEADER Y CONEXIÓN */
+        .header { background: white; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; }
+        .status-indicator { font-size: 12px; font-weight: bold; display: flex; align-items: center; gap: 5px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: #ccc; }
+        .connected { background: #2ecc71; box-shadow: 0 0 5px #2ecc71; }
+        .disconnected { background: #e74c3c; }
+
+        /* BLOQUEO */
         #lock-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #2c3e50; z-index: 2000;
+            background: #263238; z-index: 2000;
             display: flex; flex-direction: column; justify-content: center; align-items: center; color: white;
         }
         .pin-input { font-size: 30px; letter-spacing: 10px; margin: 20px; font-weight: bold; }
         .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
-        .keypad button { width: 65px; height: 65px; font-size: 22px; border-radius: 50%; border: none; cursor: pointer; background: rgba(255,255,255,0.1); color: white; }
-        
-        /* --- PANTALLA DE CONFIGURACIÓN (NUEVO) --- */
+        .keypad button { width: 70px; height: 70px; font-size: 24px; border-radius: 50%; border: none; cursor: pointer; background: rgba(255,255,255,0.1); color: white; transition: 0.2s; }
+        .keypad button:active { background: rgba(255,255,255,0.3); }
+
+        /* PANTALLA CONFIGURACIÓN */
         #settings-screen {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); z-index: 1500;
+            background: rgba(0,0,0,0.95); z-index: 1500;
             flex-direction: column; justify-content: center; align-items: center; color: white;
         }
-        .settings-box { background: #34495e; padding: 20px; border-radius: 15px; width: 85%; max-width: 400px; }
-        .settings-box input { width: 90%; padding: 10px; margin: 10px 0; border-radius: 5px; border: none; }
-        .btn-gear { position: absolute; top: 15px; right: 15px; background: none; font-size: 24px; cursor: pointer; color: #333; }
-
-        /* --- PANEL PRINCIPAL --- */
-        #main-panel { display: none; padding: 20px; max-width: 600px; margin: auto; padding-bottom: 50px; }
+        .settings-box { background: #37474f; padding: 25px; border-radius: 15px; width: 85%; max-width: 400px; text-align: left; }
+        .settings-box input { width: 90%; padding: 12px; margin: 8px 0; border-radius: 5px; border: none; }
         
-        .card { background: white; padding: 20px; margin: 15px 0; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); text-align: left; }
-        .card h3 { margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 10px; color: #7f8c8d; }
+        /* PANEL PRINCIPAL */
+        #main-panel { display: none; padding: 15px; max-width: 600px; margin: auto; }
+        .card { background: white; padding: 20px; margin: 15px 0; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .card h3 { margin-top: 0; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; color: #546e7a; font-size: 18px; display: flex; justify-content: space-between; align-items: center; }
         
-        .row { display: flex; justify-content: space-between; align-items: center; margin: 12px 0; }
-        .room-name { font-weight: bold; color: #333; font-size: 16px; }
+        /* BOTONES E INTERRUPTORES */
+        .btn { padding: 10px 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; opacity: 0.7; }
+        .btn.active-state { opacity: 1; transform: scale(1.05); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .btn-on { background: #66bb6a; color: white; }
+        .btn-off { background: #ef5350; color: white; }
+        
+        /* Toggle Switch para Alarmas */
+        .toggle-row { display: flex; justify-content: space-between; align-items: center; margin: 15px 0; font-size: 15px; }
+        .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #2196F3; }
+        input:checked + .slider:before { transform: translateX(24px); }
 
-        /* --- ESTADOS Y ALERTAS --- */
-        .status-box { padding: 8px; border-radius: 5px; color: white; font-weight: bold; text-align: center; font-size: 14px; margin-top: 5px; }
-        .status-safe { background: #95a5a6; } 
-        .status-danger { background: #e74c3c; animation: parpadeo 1s infinite; }
-        .status-active { background: #f39c12; } 
-        @keyframes parpadeo { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-
-        .btn-reset { background: #7f8c8d; font-size: 12px; padding: 5px 10px; margin-top: 5px; width: 100%; }
-
-        /* --- MICRÓFONO --- */
-        .mic-wrapper { text-align: center; margin: 20px 0; }
-        .btn-mic { 
-            width: 70px; height: 70px; border-radius: 50%; font-size: 30px; 
-            background: linear-gradient(145deg, #3498db, #2980b9); color: white; border: none; 
-            box-shadow: 0 4px 10px rgba(52, 152, 219, 0.4); cursor: pointer; transition: transform 0.2s;
-        }
-        .btn-mic:active { transform: scale(0.90); }
-        .mic-status { font-style: italic; color: #555; margin-top: 10px; min-height: 20px; font-size: 14px; }
+        /* MICRÓFONO */
+        .mic-container { margin: 20px 0; }
+        .btn-mic { width: 75px; height: 75px; border-radius: 50%; font-size: 32px; background: #29b6f6; color: white; border: none; box-shadow: 0 4px 10px rgba(41, 182, 246, 0.4); cursor: pointer; }
+        
+        /* ALERTAS */
+        .status-badge { padding: 5px 10px; border-radius: 5px; font-size: 12px; color: white; font-weight: bold; }
+        .bg-safe { background: #b0bec5; }
+        .bg-danger { background: #e53935; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 
     </style>
 </head>
 <body>
 
-    <!-- 1. PANTALLA DE BLOQUEO -->
+    <!-- 0. HEADER CONECTIVIDAD -->
+    <div class="header">
+        <button onclick="abrirConfig()" style="background:none; border:none; font-size:24px; cursor:pointer;">⚙️</button>
+        <div class="status-indicator">
+            <div id="connDot" class="dot"></div>
+            <span id="connText">Desconectado</span>
+        </div>
+    </div>
+
+    <!-- 1. BLOQUEO PIN -->
     <div id="lock-screen">
-        <div style="margin-bottom: 20px;">🔒 ACCESO SEGURO</div>
+        <h3>🔒 SISTEMA DE SEGURIDAD</h3>
         <div class="pin-input" id="pinDisplay">_ _ _ _</div>
         <div class="keypad">
             <button onclick="addPin(1)">1</button><button onclick="addPin(2)">2</button><button onclick="addPin(3)">3</button>
             <button onclick="addPin(4)">4</button><button onclick="addPin(5)">5</button><button onclick="addPin(6)">6</button>
             <button onclick="addPin(7)">7</button><button onclick="addPin(8)">8</button><button onclick="addPin(9)">9</button>
-            <button style="background:#e74c3c" onclick="clearPin()">C</button>
+            <button style="background:#d32f2f" onclick="clearPin()">C</button>
             <button onclick="addPin(0)">0</button>
-            <button style="background:#27ae60" onclick="checkPin()">OK</button>
+            <button style="background:#388e3c" onclick="checkPin()">OK</button>
         </div>
     </div>
 
-    <!-- 2. PANTALLA DE CONFIGURACIÓN (Renombrar cuartos) -->
+    <!-- 2. CONFIGURACIÓN NOMBRES -->
     <div id="settings-screen">
         <div class="settings-box">
-            <h3>⚙️ Configuración de Cuartos</h3>
-            <p style="font-size: 14px; color: #ccc;">Cambia el nombre para usarlo con voz.</p>
-            
-            <label>Cuarto 1:</label> <input type="text" id="inputC1" placeholder="Ej: Cocina">
-            <label>Cuarto 2:</label> <input type="text" id="inputC2" placeholder="Ej: Sala">
-            <label>Cuarto 3:</label> <input type="text" id="inputC3" placeholder="Ej: Recámara">
-            <label>Cuarto 4:</label> <input type="text" id="inputC4" placeholder="Ej: Baño">
-            
-            <button class="btn btn-on" style="width:100%; margin-top:15px;" onclick="guardarNombres()">💾 GUARDAR Y SALIR</button>
-            <button class="btn btn-off" style="width:100%; margin-top:10px;" onclick="cerrarConfig()">CANCELAR</button>
+            <h3>⚙️ Personalizar</h3>
+            <label>Cuarto 1:</label><input type="text" id="inputC1" placeholder="Cocina">
+            <label>Cuarto 2:</label><input type="text" id="inputC2" placeholder="Sala">
+            <label>Cuarto 3:</label><input type="text" id="inputC3" placeholder="Recámara">
+            <label>Cuarto 4:</label><input type="text" id="inputC4" placeholder="Baño">
+            <button class="btn btn-on" style="width:100%; margin-top:20px;" onclick="guardarNombres()">Guardar</button>
+            <button class="btn btn-off" style="width:100%; margin-top:10px;" onclick="cerrarConfig()">Cerrar</button>
         </div>
     </div>
 
     <!-- 3. PANEL PRINCIPAL -->
     <div id="main-panel">
-        <!-- Botón Configurar -->
-        <button class="btn btn-gear" onclick="abrirConfig()">⚙️</button>
         
-        <h1>🏡 Control Residencial</h1>
-
         <!-- MICRÓFONO -->
-        <div class="mic-wrapper">
+        <div class="mic-container">
             <button class="btn-mic" onclick="activarVoz()">🎤</button>
-            <div id="textoVoz" class="mic-status">Toca y di: "Encender cocina"...</div>
+            <div id="textoVoz" style="margin-top:10px; color:#546e7a; font-style:italic;">Pulsa para hablar...</div>
         </div>
 
-        <!-- SENSORES Y ALARMAS -->
+        <!-- TARJETA SEGURIDAD (CONFIGURABLE) -->
         <div class="card">
-            <h3>🛡️ Seguridad y Sensores</h3>
+            <h3>🛡️ Sistema de Alarmas</h3>
             
-            <div style="margin-bottom: 15px;">
-                <span>🚶 Ultrasonido (Intruso):</span>
-                <div id="alertUltra" class="status-box status-safe">Sin Movimiento</div>
-                <button class="btn btn-reset" onclick="resetAlarma('alerta_ultrasonico')">🔕 Desactivar Alarma</button>
+            <div class="toggle-row">
+                <span>🔔 Alarma Ultrasónica</span>
+                <label class="switch">
+                    <input type="checkbox" id="swUltra" onchange="toggleAlarma('activar_ultra', this.checked)">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div style="text-align:right; margin-bottom:10px;">
+                Estado: <span id="stUltra" class="status-badge bg-safe">Seguro</span>
             </div>
 
-            <div style="margin-bottom: 15px;">
-                <span>🪟 Sensor Ventana:</span>
-                <div id="alertIR" class="status-box status-safe">Cerrada</div>
-                <button class="btn btn-reset" onclick="resetAlarma('alerta_ir')">🔕 Resetear Estado</button>
+            <div class="toggle-row">
+                <span>🔔 Alarma Infrarroja</span>
+                <label class="switch">
+                    <input type="checkbox" id="swIR" onchange="toggleAlarma('activar_ir', this.checked)">
+                    <span class="slider"></span>
+                </label>
             </div>
-
-            <div style="margin-bottom: 15px;">
-                <span>💡 Luz Exterior:</span>
-                <div id="statusLuzExt" class="status-box status-safe">APAGADA</div>
-            </div>
-            
-            <hr>
-            <div style="display: flex; justify-content: space-around; font-size: 18px;">
-                <span>🌡️ <b id="valTemp">--</b> °C</span>
-                <span>💧 <b id="valHum">--</b> %</span>
+            <div style="text-align:right;">
+                Estado: <span id="stIR" class="status-badge bg-safe">Seguro</span>
             </div>
         </div>
 
-        <!-- PUERTA -->
+        <!-- TARJETA PUERTA -->
         <div class="card">
-            <h3>🚪 Acceso Principal</h3>
-            <button class="btn btn-door" style="width:100%; background:#f1c40f; color:black; padding:15px;" onclick="togglePuerta()">ABRIR / CERRAR</button>
-            <p id="estadoPuertaTexto" style="text-align:center; font-weight:bold;">Estado: ...</p>
+            <h3>🚪 Acceso</h3>
+            <button class="btn" id="btnPuerta" style="width:100%; background:#ffa000; color:white; padding:15px;" onclick="togglePuerta()">ABRIR / CERRAR</button>
+            <p id="txtPuerta" style="text-align:center; font-weight:bold; margin-top:10px;">Cerrada</p>
         </div>
 
-        <!-- HABITACIONES (Nombres Dinámicos) -->
+        <!-- TARJETA LUCES CON VISUALIZACIÓN -->
         <div class="card">
-            <h3>💡 Iluminación</h3>
-            
-            <div class="row">
-                <span id="lblC1" class="room-name">Cuarto 1</span> 
-                <div><button class="btn btn-on" onclick="setLuz('cuarto1', 1)">ON</button> <button class="btn btn-off" onclick="setLuz('cuarto1', 0)">OFF</button></div>
-            </div>
-            
-            <div class="row">
-                <span id="lblC2" class="room-name">Cuarto 2</span> 
-                <div><button class="btn btn-on" onclick="setLuz('cuarto2', 1)">ON</button> <button class="btn btn-off" onclick="setLuz('cuarto2', 0)">OFF</button></div>
-            </div>
-            
-            <div class="row">
-                <span id="lblC3" class="room-name">Cuarto 3</span> 
-                <div><button class="btn btn-on" onclick="setLuz('cuarto3', 1)">ON</button> <button class="btn btn-off" onclick="setLuz('cuarto3', 0)">OFF</button></div>
-            </div>
-            
-            <div class="row">
-                <span id="lblC4" class="room-name">Cuarto 4</span> 
-                <div><button class="btn btn-on" onclick="setLuz('cuarto4', 1)">ON</button> <button class="btn btn-off" onclick="setLuz('cuarto4', 0)">OFF</button></div>
+            <h3>💡 Iluminación y Clima</h3>
+            <div style="margin-bottom:15px; font-size:14px; color:#78909c;">
+                Temp: <b id="valTemp">--</b>°C | Hum: <b id="valHum">--</b>% | Jardín: <b id="valJardin">OFF</b>
             </div>
 
+            <!-- Botones de Luces -->
+            <div id="controlesLuces">
+                <!-- Se llenan dinamicamente con JS para aplicar estilos -->
+            </div>
         </div>
     </div>
 
-    <!-- SDK FIREBASE -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
     <script>
-        // --- 1. CONFIGURACIÓN FIREBASE ---
+        // CONFIGURACIÓN FIREBASE
         const firebaseConfig = {
             apiKey: "TU_API_KEY_AQUI", 
             authDomain: "esp23-8c60b.firebaseapp.com",
@@ -186,189 +175,207 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // --- 2. VARIABLES DE NOMBRES (Default) ---
-        let nombres = {
-            c1: "Cuarto 1",
-            c2: "Cuarto 2",
-            c3: "Cuarto 3",
-            c4: "Cuarto 4"
-        };
+        // VARIABLES GLOBALES
+        let nombres = { c1:"Cuarto 1", c2:"Cuarto 2", c3:"Cuarto 3", c4:"Cuarto 4" };
+        let estadoPuerta = 0;
+        let estadosLuces = { c1:0, c2:0, c3:0, c4:0 };
 
-        // Al iniciar, cargamos nombres guardados
+        // --- INICIO ---
         window.onload = function() {
             cargarNombres();
+            renderizarBotonesLuces();
+            checkConnection();
         };
 
-        // --- 3. LÓGICA DE CONFIGURACIÓN ---
-        function abrirConfig() {
-            document.getElementById('inputC1').value = nombres.c1;
-            document.getElementById('inputC2').value = nombres.c2;
-            document.getElementById('inputC3').value = nombres.c3;
-            document.getElementById('inputC4').value = nombres.c4;
-            document.getElementById('settings-screen').style.display = 'flex';
+        function checkConnection() {
+            const connectedRef = db.ref(".info/connected");
+            connectedRef.on("value", (snap) => {
+                const connected = snap.val();
+                const dot = document.getElementById('connDot');
+                const txt = document.getElementById('connText');
+                if (connected) {
+                    dot.className = "dot connected";
+                    txt.innerText = "Conectado";
+                } else {
+                    dot.className = "dot disconnected";
+                    txt.innerText = "Desconectado";
+                }
+            });
         }
 
-        function cerrarConfig() {
-            document.getElementById('settings-screen').style.display = 'none';
-        }
-
-        function guardarNombres() {
-            // Obtener valores
-            nombres.c1 = document.getElementById('inputC1').value || "Cuarto 1";
-            nombres.c2 = document.getElementById('inputC2').value || "Cuarto 2";
-            nombres.c3 = document.getElementById('inputC3').value || "Cuarto 3";
-            nombres.c4 = document.getElementById('inputC4').value || "Cuarto 4";
-
-            // Guardar en memoria del celular (LocalStorage)
-            localStorage.setItem('misNombresCasa', JSON.stringify(nombres));
-
-            // Actualizar interfaz
-            actualizarInterfazNombres();
-            cerrarConfig();
-            alert("¡Nombres guardados! Ahora puedes usar la voz con ellos.");
-        }
-
-        function cargarNombres() {
-            const guardado = localStorage.getItem('misNombresCasa');
-            if (guardado) {
-                nombres = JSON.parse(guardado);
-            }
-            actualizarInterfazNombres();
-        }
-
-        function actualizarInterfazNombres() {
-            document.getElementById('lblC1').innerText = nombres.c1;
-            document.getElementById('lblC2').innerText = nombres.c2;
-            document.getElementById('lblC3').innerText = nombres.c3;
-            document.getElementById('lblC4').innerText = nombres.c4;
-        }
-
-        // --- 4. LÓGICA PIN SEGURIDAD ---
+        // --- LÓGICA PIN Y BUZZER ---
         let pin = "";
         function addPin(n) { if(pin.length < 4) { pin += n; updatePinDisplay(); } }
         function clearPin() { pin = ""; updatePinDisplay(); }
         function updatePinDisplay() { document.getElementById('pinDisplay').innerText = "* ".repeat(pin.length) || "_ _ _ _"; }
+        
         function checkPin() {
             if(pin === "1234") {
+                // PIN CORRECTO -> Enviar código 1 al Buzzer
+                db.ref('casa/config/buzzer_accion').set(1);
+                
                 document.getElementById('lock-screen').style.display = "none";
                 document.getElementById('main-panel').style.display = "block";
-            } else { alert("Pin Incorrecto"); clearPin(); }
+            } else {
+                // PIN INCORRECTO -> Enviar código 2 al Buzzer
+                db.ref('casa/config/buzzer_accion').set(2);
+                
+                alert("Pin Incorrecto"); 
+                clearPin(); 
+            }
         }
 
-        // --- 5. CONTROL HARDWARE ---
-        function setLuz(cuarto, val) { db.ref('casa/control/' + cuarto).set(val); }
-        
-        // RESETEAR ALARMAS: Pone la variable en 0 en Firebase
-        function resetAlarma(tipo) {
-            db.ref('casa/sensores/' + tipo).set(0);
+        // --- CONTROL DE ALARMAS ---
+        function toggleAlarma(tipo, activa) {
+            db.ref('casa/config/' + tipo).set(activa);
         }
 
-        let estadoPuertaActual = 0;
+        // --- CONTROL DE HARDWARE ---
+        function setLuz(cuarto, val) {
+            db.ref('casa/control/' + cuarto).set(val);
+        }
+
         function togglePuerta() {
-            const nuevoEstado = estadoPuertaActual === 0 ? 1 : 0;
-            db.ref('casa/control/puerta').set(nuevoEstado);
+            const nuevo = estadoPuerta === 0 ? 1 : 0;
+            db.ref('casa/control/puerta').set(nuevo);
         }
 
-        // --- 6. LÓGICA DE VOZ AVANZADA (DINÁMICA) ---
-        function activarVoz() {
-            const output = document.getElementById('textoVoz');
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        // --- RENDERIZADO DINÁMICO DE LUCES ---
+        function renderizarBotonesLuces() {
+            const container = document.getElementById('controlesLuces');
+            let html = '';
             
-            if (!SpeechRecognition) {
-                alert("Navegador no compatible. Usa Chrome.");
-                return;
-            }
+            const lista = [
+                { id: 'cuarto1', name: nombres.c1, state: estadosLuces.c1 },
+                { id: 'cuarto2', name: nombres.c2, state: estadosLuces.c2 },
+                { id: 'cuarto3', name: nombres.c3, state: estadosLuces.c3 },
+                { id: 'cuarto4', name: nombres.c4, state: estadosLuces.c4 }
+            ];
 
-            const recognition = new SpeechRecognition();
-            recognition.lang = 'es-ES';
-            recognition.start();
-            output.innerText = "Escuchando... 👂";
-            output.style.color = "#d35400";
-
-            recognition.onresult = function(event) {
-                const comando = event.results[0][0].transcript.toLowerCase();
-                output.innerText = 'Detectado: "' + comando + '"';
-                output.style.color = "#333";
-                procesarComandoDinamico(comando);
-            };
+            lista.forEach(l => {
+                // Si estado es 1, el boton ON brilla. Si es 0, el boton OFF es solido
+                const onClass = l.state === 1 ? 'btn-on active-state' : 'btn-on';
+                const offClass = l.state === 0 ? 'btn-off active-state' : 'btn-off';
+                
+                html += `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <span style="font-weight:bold; color:#455a64;">${l.name}</span>
+                    <div>
+                        <button class="btn ${onClass}" onclick="setLuz('${l.id}', 1)">ON</button>
+                        <button class="btn ${offClass}" onclick="setLuz('${l.id}', 0)">OFF</button>
+                    </div>
+                </div>`;
+            });
+            container.innerHTML = html;
         }
 
-        function procesarComandoDinamico(texto) {
-            // Palabras de acción
-            const on = texto.includes("encender") || texto.includes("prender") || texto.includes("activar");
-            const off = texto.includes("apagar") || texto.includes("desactivar");
-            
-            // 1. COMPARAR CON NOMBRES PERSONALIZADOS
-            // Normalizamos a minusculas para comparar
-            
-            if (texto.includes(nombres.c1.toLowerCase())) {
-                if (on) setLuz('cuarto1', 1); if (off) setLuz('cuarto1', 0);
-            }
-            else if (texto.includes(nombres.c2.toLowerCase())) {
-                if (on) setLuz('cuarto2', 1); if (off) setLuz('cuarto2', 0);
-            }
-            else if (texto.includes(nombres.c3.toLowerCase())) {
-                if (on) setLuz('cuarto3', 1); if (off) setLuz('cuarto3', 0);
-            }
-            else if (texto.includes(nombres.c4.toLowerCase())) {
-                if (on) setLuz('cuarto4', 1); if (off) setLuz('cuarto4', 0);
-            }
-            // PUERTA (Siempre se llama puerta)
-            else if (texto.includes("puerta")) {
-                if (texto.includes("abrir")) db.ref('casa/control/puerta').set(1);
-                if (texto.includes("cerrar")) db.ref('casa/control/puerta').set(0);
-            }
-            // ALARMA
-            else if (texto.includes("alarma") && off) {
-                resetAlarma('alerta_ultrasonico');
-                resetAlarma('alerta_ir');
-            }
-        }
-
-        // --- 7. LECTURA EN TIEMPO REAL ---
+        // --- LECTURA DE DATOS EN TIEMPO REAL ---
         db.ref('casa').on('value', (snap) => {
             const data = snap.val();
             if(!data) return;
 
-            // Sensores y Clima
-            const sens = data.sensores;
-            document.getElementById('valTemp').innerText = sens.temperatura;
-            document.getElementById('valHum').innerText = sens.humedad;
-
-            // Alerta Ultrasonico
-            const divUltra = document.getElementById('alertUltra');
-            if(sens.alerta_ultrasonico == 1) {
-                divUltra.innerText = "¡INTRUSO DETECTADO!";
-                divUltra.className = "status-box status-danger";
-            } else {
-                divUltra.innerText = "Sin movimiento";
-                divUltra.className = "status-box status-safe";
+            // 1. Actualizar Luces (Para feedback visual)
+            if(data.control) {
+                estadosLuces.c1 = data.control.cuarto1;
+                estadosLuces.c2 = data.control.cuarto2;
+                estadosLuces.c3 = data.control.cuarto3;
+                estadosLuces.c4 = data.control.cuarto4;
+                estadoPuerta = data.control.puerta;
+                
+                renderizarBotonesLuces(); // Re-dibujar botones con estado actual
+                
+                // Puerta
+                const btnP = document.getElementById('btnPuerta');
+                if(estadoPuerta) {
+                    btnP.style.background = "#ef5350"; // Rojo para cerrar
+                    btnP.innerText = "CERRAR PUERTA";
+                    document.getElementById('txtPuerta').innerText = "Abierta 🔓";
+                } else {
+                    btnP.style.background = "#ffa000"; // Naranja para abrir
+                    btnP.innerText = "ABRIR PUERTA";
+                    document.getElementById('txtPuerta').innerText = "Cerrada 🔒";
+                }
             }
 
-            // Alerta IR
-            const divIR = document.getElementById('alertIR');
-            if(sens.alerta_ir == 1) {
-                divIR.innerText = "¡VENTANA ABIERTA!";
-                divIR.className = "status-box status-danger";
-            } else {
-                divIR.innerText = "Segura";
-                divIR.className = "status-box status-safe";
-            }
+            // 2. Actualizar Sensores y Alarmas
+            if(data.sensores) {
+                document.getElementById('valTemp').innerText = data.sensores.temperatura;
+                document.getElementById('valHum').innerText = data.sensores.humedad;
+                document.getElementById('valJardin').innerText = data.sensores.luz_exterior || "OFF";
 
-            // Luz Exterior
-            const divLuz = document.getElementById('statusLuzExt');
-            if(sens.luz_exterior == "ON") {
-                divLuz.innerText = "NOCHE (ENCENDIDA)";
-                divLuz.className = "status-box status-active";
-            } else {
-                divLuz.innerText = "DÍA (APAGADA)";
-                divLuz.className = "status-box status-safe";
-            }
+                // Badge Alarma Ultra
+                const bgUltra = document.getElementById('stUltra');
+                if(data.sensores.alerta_ultrasonico == 1) {
+                    bgUltra.className = "status-badge bg-danger";
+                    bgUltra.innerText = "INTRUSO DETECTADO";
+                } else {
+                    bgUltra.className = "status-badge bg-safe";
+                    bgUltra.innerText = "Seguro";
+                }
 
-            // Puerta
-            estadoPuertaActual = data.control.puerta;
-            document.getElementById('estadoPuertaTexto').innerText = estadoPuertaActual ? "🔓 ABIERTA" : "🔒 CERRADA";
+                // Badge Alarma IR
+                const bgIR = document.getElementById('stIR');
+                if(data.sensores.alerta_ir == 1) {
+                    bgIR.className = "status-badge bg-danger";
+                    bgIR.innerText = "VENTANA ABIERTA";
+                } else {
+                    bgIR.className = "status-badge bg-safe";
+                    bgIR.innerText = "Cerrada";
+                }
+                
+                // Sincronizar interruptores de alarma (Si se cambiaron desde otro cel)
+                if(data.sensores.estado_alarma_ultra !== undefined) {
+                    document.getElementById('swUltra').checked = data.sensores.estado_alarma_ultra;
+                }
+                if(data.sensores.estado_alarma_ir !== undefined) {
+                    document.getElementById('swIR').checked = data.sensores.estado_alarma_ir;
+                }
+            }
         });
+
+        // --- LÓGICA CONFIG NOMBRES Y VOZ ---
+        // (Misma lógica previa de LocalStorage y VoiceRecognition)
+        function abrirConfig() { document.getElementById('settings-screen').style.display = 'flex'; }
+        function cerrarConfig() { document.getElementById('settings-screen').style.display = 'none'; }
+        function guardarNombres() {
+            nombres.c1 = document.getElementById('inputC1').value || "Cuarto 1";
+            nombres.c2 = document.getElementById('inputC2').value || "Cuarto 2";
+            nombres.c3 = document.getElementById('inputC3').value || "Cuarto 3";
+            nombres.c4 = document.getElementById('inputC4').value || "Cuarto 4";
+            localStorage.setItem('nombresCasa', JSON.stringify(nombres));
+            renderizarBotonesLuces();
+            cerrarConfig();
+        }
+        function cargarNombres() {
+            const saved = localStorage.getItem('nombresCasa');
+            if(saved) nombres = JSON.parse(saved);
+        }
+
+        // VOZ (Simplificada para integrar con nombres)
+        function activarVoz() {
+            const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if(!Recognition) { alert("Navegador no compatible"); return; }
+            const rec = new Recognition();
+            rec.lang = 'es-ES';
+            rec.start();
+            document.getElementById('textoVoz').innerText = "Escuchando...";
+            rec.onresult = (e) => {
+                const txt = e.results[0][0].transcript.toLowerCase();
+                document.getElementById('textoVoz').innerText = txt;
+                procesarVoz(txt);
+            }
+        }
+
+        function procesarVoz(txt) {
+            const on = txt.includes("encender") || txt.includes("prender") || txt.includes("abrir");
+            const off = txt.includes("apagar") || txt.includes("cerrar");
+            
+            if(txt.includes("puerta")) togglePuerta();
+            else if(txt.includes(nombres.c1.toLowerCase())) setLuz('cuarto1', on ? 1 : 0);
+            else if(txt.includes(nombres.c2.toLowerCase())) setLuz('cuarto2', on ? 1 : 0);
+            else if(txt.includes(nombres.c3.toLowerCase())) setLuz('cuarto3', on ? 1 : 0);
+            else if(txt.includes(nombres.c4.toLowerCase())) setLuz('cuarto4', on ? 1 : 0);
+        }
     </script>
 </body>
 </html>
